@@ -4,4 +4,4 @@ router = APIRouter()
 
 @router.get("/")
 def get_products():
-    return {"product": "xyz"}
+    pass
