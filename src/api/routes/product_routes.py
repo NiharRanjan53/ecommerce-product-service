@@ -1,7 +1,15 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from src.core.roles import RoleChecker
 
-router = APIRouter()
 
-@router.get("/")
-def get_products():
-    pass
+class ProductRouter:
+    def __init__(self):
+        self.router = APIRouter()
+        self.router.add_api_route("/", self.create_product, methods=["POST"], dependencies=[Depends(RoleChecker(["ADMIN", "SELLER"]))])
+
+    async def create_product(self):
+        return {"message":"create product"}
+    def get_products(self):
+        pass
+    def delete_product(self):
+        pass

@@ -6,6 +6,10 @@ class Settings(BaseSettings):
     APP_NAME: str = "FastAPI App"
     DEBUG: bool = True
 
+    JWT_SECRET: str
+    JWT_ALGORITHM: str = "HS256" 
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
     model_config = {
         "env_file": ".env"
     }
