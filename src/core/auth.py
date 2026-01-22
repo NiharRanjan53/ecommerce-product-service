@@ -14,6 +14,7 @@ class AuthHandler:
         credentials: HTTPAuthorizationCredentials = Depends(security)
     ):
         token = credentials.credentials
+        print(token)
         try:
             return self.jwt_service.decode_token(token)
         except JWTError:
