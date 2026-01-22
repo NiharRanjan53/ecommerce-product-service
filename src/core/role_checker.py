@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from src.core.auth import AuthHandler
+from src.enums.roles import Role
 
 class RoleChecker:
     def __init__(self, allowed_roles: list[str]):
@@ -14,9 +15,12 @@ class RoleChecker:
     '''
     def __call__(self, user=Depends(AuthHandler().get_current_user)):
         # print(user)
-        if user.get("role") not in self.allowed_roles:
+        user_role = Role(user.get("role"))
+
+        if user_role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Permission denied"
             )
+
         return user

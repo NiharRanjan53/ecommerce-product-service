@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from src.core.roles import RoleChecker
+from src.core.role_checker import RoleChecker
 
 
 class ProductRouter:

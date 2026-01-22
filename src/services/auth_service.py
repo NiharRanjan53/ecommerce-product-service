@@ -11,8 +11,9 @@ class AuthService:
             return False
         
         data["password"] = PasswordHasher.hash(data["password"])
+        data["role"] = data["role"].value
         await self.user_repo.create_user(data)
-        
+
         return True
     
     async def login(self, mail: str, password: str):
