@@ -10,6 +10,13 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256" 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    MAIL_USERNAME:str
+    MAIL_PASSWORD:str
+    MAIL_FROM:str
+    MAIL_PORT:int
+    MAIL_SERVER:str
+
+
     model_config = {
         "env_file": ".env"
     }

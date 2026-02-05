@@ -14,7 +14,8 @@ class UserRepository:
         await self.collection.insert_one(user.dict())
 
     async def find_by_id(self, user_id: str):
-        return await self.collection.find_one({"id": user_id})
+        print(f"findby id {user_id}")
+        return await self.collection.find_one({"_id": ObjectId(user_id)})
 
     async def update_profile(self, user_id: str, data: dict):
         data["updated_at"] = datetime.utcnow()

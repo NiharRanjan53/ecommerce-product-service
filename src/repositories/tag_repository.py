@@ -27,8 +27,14 @@ class TagRepository:
                 }
             }
         )
-        print(result)
+        # print(result)
         return result.modified_count > 0
+    
+    async def get_tag_by_id(self, tag_id: str):
+        exist = await self.collection.find_one({"_id": ObjectId(tag_id)})
+        if not exist:
+            return None
+        return exist 
 
     async def get_all_tags(self):
         return await self.collection.find().to_list(100)

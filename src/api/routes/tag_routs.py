@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi import BackgroundTasks
+from src.services.email_service import EmailService
 from src.enums.roles import Role
 from src.core.role_checker import RoleChecker
 from src.schemas.tag_schema import TagCreate
@@ -6,6 +8,7 @@ from src.core.database import get_db
 from src.core.auth import AuthHandler
 from src.services.tag_service import TagService
 from src.repositories.tag_repository import TagRepository
+from src.repositories.user_repository import UserRepository
 def serialize_tag(tag):
     tag["id"] = str(tag["_id"])
     tag.pop("_id")
@@ -13,7 +16,7 @@ def serialize_tag(tag):
 class TagRouter:
     def __init__(self):
         self.router = APIRouter()
-        self.router.add_api_route("/", self.create_tag, methods=["POST"], dependencies=[Depends(RoleChecker([Role.ADMIN, Role.USER]))])
+        self.router.add_api_route("/", self.create_tag, methods=["POST"], dependencies=[Depends(RoleChecker([Role.ADMIN, Role.SELLER]))])
         self.router.add_api_route("/admin", self.get_all_tags, methods=["GET"], dependencies=[Depends(RoleChecker([Role.ADMIN]))])
         self.router.add_api_route("/", self.get_active_tags, methods=["GET"])
         self.router.add_api_route("/{tag_id}/delete", self.delete_tag, methods=["DELETE"], dependencies=[Depends(RoleChecker([Role.ADMIN]))])
@@ -50,10 +53,10 @@ class TagRouter:
 
         return {"message": "Tag deactivated successfully"}
 
-    async def approve_tag(self, tag_id: str, db = Depends(get_db)):
-        print(tag_id)
-        service = TagService(TagRepository(db))
-        approved = await service.approve_tag(tag_id)
+    async def approve_tag(self, tag_id: str, background_tasks: BackgroundTasks, db = Depends(get_db)):
+        # print(tag_id)
+        service = TagService(TagRepository(db), UserRepository(db))
+        approved = await service.approve_tag(tag_id, background_tasks)
         if not approved:
             raise HTTPException(status_code=404, detail="Tag not found")
 
