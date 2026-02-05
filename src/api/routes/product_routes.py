@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends
 from src.core.role_checker import RoleChecker
+from src.enums.roles import Role
 
 
 class ProductRouter:
     def __init__(self):
         self.router = APIRouter()
-        self.router.add_api_route("/", self.create_product, methods=["POST"], dependencies=[Depends(RoleChecker(["ADMIN", "SELLER", "admin"]))])
+        self.router.add_api_route("/", self.create_product, methods=["POST"], dependencies=[Depends(RoleChecker([Role.ADMIN, Role.SELLER]))])
 
     async def create_product(self):
         return {"message":"create product"}

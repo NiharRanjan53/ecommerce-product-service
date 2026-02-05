@@ -3,7 +3,7 @@ from src.core.auth import AuthHandler
 from src.enums.roles import Role
 
 class RoleChecker:
-    def __init__(self, allowed_roles: list[str]):
+    def __init__(self, allowed_roles: list[Role]):
         self.allowed_roles = allowed_roles
         self.auth_handler = AuthHandler()
     '''
