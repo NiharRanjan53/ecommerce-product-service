@@ -14,5 +14,18 @@ class TagService:
             created_by=data["created_by"]   
         )
         return await self.repository.create_tag(tag.dict())
+    
+    async def delete_tag(self, tag_id: str):
+        return await self.repository.delete_tag(tag_id)
+    
+    async def get_all_tags(self):
+        return await self.repository.get_all_tags()
+
+    async def get_active_tags(self):
+        return await self.repository.get_active_tags()
+    
+    async def approve_tag(self, tag_id: str):
+        print(f"Service {tag_id}")
+        return await self.repository.approve_tag(tag_id)
 
     
