@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from src.schemas.auth_schema import RegisterRequest, LoginRequest, TokenResponse
+from src.schemas.auth_schema import RegisterRequest, LoginRequest, TokenResponse, UserUpdate
 from src.core.database import get_db
 from src.core.auth import AuthHandler
 from src.services.auth_service import AuthService
@@ -11,10 +11,10 @@ class AuthRouter:
     def __init__(self):
         self.router = APIRouter()
 
-
         self.router.add_api_route("/register", self.register, methods=["POST"])
         self.router.add_api_route("/login", self.login, methods=["POST"], response_model=TokenResponse)
         self.router.add_api_route("/me", self.get_me, methods=['GET'])
+        self.router.add_api_route("/update-profile", self.update_profile, methods=["PUT"])
 
     async def register(self, data : RegisterRequest , db = Depends(get_db)):
         service = AuthService(UserRepository(db))
@@ -37,4 +37,12 @@ class AuthRouter:
     async def get_me(self, user = Depends(AuthHandler().get_current_user)):
         return user
 
+    async def update_profile(self, data: UserUpdate, db=Depends(get_db), current_user=Depends(AuthHandler().get_current_user)):
+        service = AuthService(UserRepository(db))
+        print(current_user)
+        updated = await service.update_profile(current_user["user_id"], data.dict())
 
+        if not updated:
+            raise HTTPException(400, "Profile update failed")
+
+        return {"message": "Profile updated successfully"}
