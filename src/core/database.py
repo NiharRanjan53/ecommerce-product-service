@@ -1,4 +1,4 @@
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from src.core.config import settings
 
 class MongoDB:
@@ -15,7 +15,8 @@ async def close_db():
         mongodb.client.close()
         print("❌ MongoDB disconnected")
 
-def get_db():
+def get_db() -> AsyncIOMotorDatabase:
+    """Dependency for FastAPI routes."""
     if mongodb.client is None:
         raise RuntimeError("MongoDB client is not initialized")
     return mongodb.client[settings.DB_NAME]

@@ -1,8 +1,9 @@
-from pydantic import Field
-from datetime import datetime
+from fastapi import HTTPException, status, BackgroundTasks
 from src.core.security import JWTService
 from src.core.password_hasher import PasswordHasher
-from src.schemas.auth_schema import UserInDB
+from src.schemas.auth_schema import UserInDB, UserUpdate
+from src.services.email_service import EmailService
+
 
 class AuthService:
     def __init__(self, user_repo):
@@ -28,7 +29,9 @@ class AuthService:
     
     async def login(self, mail: str, password: str):
         user = await self.user_repo.find_by_email(mail)
-
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
         if not PasswordHasher.verify(password, user["password_hash"]):
             return None
 
@@ -40,11 +43,42 @@ class AuthService:
         return self.jwt_service.create_token(payload)
     
 
-    async def update_profile(self, user_id: str, data: dict):
-        if data.get("password"):
-            data["password_hash"] = PasswordHasher.hash(data.pop("password"))
+    async def update_user_profile(
+        self, 
+        requested_by: dict, 
+        target_user_id: str, 
+        update_data: UserUpdate,
+        notify: bool,
+        background_tasks: BackgroundTasks
+    ):
+        # 1. Business Validation (Ownership Check)
+        if requested_by["user_id"] != target_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail="You do not have permission to update this profile"
+            )
 
-        clean_data = {k: v for k, v in data.items() if v is not None}
-        print(clean_data)
+        # 2. Data Preparation
+        payload = update_data.model_dump(exclude_unset=True)
+        if not payload:
+            raise HTTPException(status_code=400, detail="No update data provided")
 
-        return await self.user_repo.update_profile(user_id, clean_data)
+        if "password" in payload:
+            payload["password_hash"] = PasswordHasher.hash(payload.pop("password"))
+
+        # 3. Database Operation
+        updated_user = await self.user_repo.update(target_user_id, payload)
+        
+        if not updated_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # 4. Background Job (Non-blocking)
+        if notify:
+            # We 'register' the task. It runs AFTER the return statement finishes.
+            background_tasks.add_task(
+                EmailService.send_profile_update_email,
+                updated_user["email"],
+                updated_user.get("name", "User")
+            )
+
+        return updated_user

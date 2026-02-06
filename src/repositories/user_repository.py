@@ -1,5 +1,6 @@
 from datetime import datetime
 from bson import ObjectId
+from pymongo import ReturnDocument
 from src.models.user_model import USER_COLLECTION
 from src.schemas.auth_schema import UserInDB
 
@@ -14,11 +15,15 @@ class UserRepository:
         await self.collection.insert_one(user.dict())
 
     async def find_by_id(self, user_id: str):
-        print(f"findby id {user_id}")
         return await self.collection.find_one({"_id": ObjectId(user_id)})
 
-    async def update_profile(self, user_id: str, data: dict):
+    async def update(self, user_id: str, data: dict):
         data["updated_at"] = datetime.utcnow()
-        # print(data)
-        # print(user_id)
-        return await self.collection.update_one({"_id": ObjectId(user_id)}, {"$set": data})
+    
+        # find_one_and_update returns the actual document (dict)
+        return await self.collection.find_one_and_update(
+            {"_id": ObjectId(user_id)},
+            {"$set": data},
+            # return_document=ReturnDocument.AFTER ensures you get the NEW data
+            return_document=ReturnDocument.AFTER 
+        )
