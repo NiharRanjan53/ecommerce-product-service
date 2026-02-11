@@ -6,8 +6,9 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  on-push:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: "Running on main push"
+        run: echo "Running on main push"
