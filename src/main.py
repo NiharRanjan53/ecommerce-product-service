@@ -17,4 +17,4 @@ register_route(app)
 
 @app.get("/")
 def health():
-    return {"Status": "OK"}
+    return {"Status": "OK, Version 2"}
