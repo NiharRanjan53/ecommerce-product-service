@@ -10,6 +10,7 @@ env:
   ECR_REPOSITORY: ecommerce-app
   ECS_CLUSTER: ecommerce-cluster
   ECS_SERVICE: ecommerce-product-service
+  CONTAINER_NAME: ecommerce-task:1 # container name in task definition
 
 jobs:
   deploy:
@@ -30,26 +31,38 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Build once, tag with both SHA and latest, and push both to ECR
       - name: Build, Tag, and Push Image to Amazon ECR
+        id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # 1. Build the local image using the unique SHA tag
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-
-          # 2. Add an additional 'latest' tag to that exact same build
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-
-          # 3. Push both tags to Amazon ECR
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          # Save the exact, unique image URI for the deployment steps below
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      # pulling 'latest' will fetch
-      - name: Deploy to ECS
+      # 1. Download the current active task definition directly from AWS
+      - name: Download Active Task Definition
         run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE \
-            --force-new-deployment
+          aws ecs describe-task-definition \
+            --task-definition $ECS_SERVICE \
+            --query taskDefinition > task-definition.json
+
+      # 2. Point the container definition image key directly to the new SHA (breaking the cache)
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      # 3. Deploy the explicit, new task definition revision
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
