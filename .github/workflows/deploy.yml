@@ -10,9 +10,6 @@ env:
   ECR_REPOSITORY: ecommerce-app
   ECS_CLUSTER: ecommerce-cluster
   ECS_SERVICE: ecommerce-product-service
-  # Add this to dynamically fetch  existing task definition file name or family
-  ECS_TASK_DEFINITION: .aws/task-definition.json
-  CONTAINER_NAME: ecommerce-product-container # Must match the container name inside your ECS task definition
 
 jobs:
   deploy:
@@ -33,16 +30,23 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # We tag the image with the specific GitHub commit SHA
+      # Build once, tag with both SHA and latest, and push both to ECR
       - name: Build, Tag, and Push Image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          # 1. Build the local image using the unique SHA tag
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      # Force ECS to pick up the changes
+          # 2. Add an additional 'latest' tag to that exact same build
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          # 3. Push both tags to Amazon ECR
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      # pulling 'latest' will fetch
       - name: Deploy to ECS
         run: |
           aws ecs update-service \
